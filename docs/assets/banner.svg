@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title description">
+  <title id="title">DEAD SMILE LIBRARY</title>
+  <desc id="description">Biblioteca digital autoalojada con estética terminal, catálogo multiformato y despliegue Docker.</desc>
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#fff" stroke-opacity=".045"/>
+    </pattern>
+    <linearGradient id="fade"><stop stop-color="#00ff41" stop-opacity=".1"/><stop offset="1" stop-color="#00ff41" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="1200" height="400" rx="16" fill="#0a0a0a"/>
+  <rect width="1200" height="400" rx="16" fill="url(#grid)"/>
+  <rect x="24" y="24" width="1152" height="352" rx="8" fill="none" stroke="#282828"/>
+  <circle cx="51" cy="49" r="4" fill="#555"/><circle cx="67" cy="49" r="4" fill="#555"/><circle cx="83" cy="49" r="4" fill="#00ff41"/>
+  <text x="106" y="54" fill="#888" font-family="monospace" font-size="13">dead-library / public archive</text>
+  <path d="M24 72H1176" stroke="#282828"/>
+  <rect x="49" y="107" width="1030" height="178" fill="url(#fade)"/>
+  <text x="58" y="132" fill="#00ff41" font-family="monospace" font-size="16">&gt; EL CONOCIMIENTO SE COMPARTE</text>
+  <text x="54" y="209" fill="#fff" font-family="monospace" font-weight="700" font-size="57" letter-spacing="-2">DEAD SMILE LIBRARY</text>
+  <rect x="693" y="164" width="20" height="50" fill="#00ff41"/>
+  <text x="58" y="252" fill="#a1a1a1" font-family="monospace" font-size="18">Biblioteca clandestina de archivos de DEAD SMILE.</text>
+  <text x="58" y="330" fill="#00ff41" font-family="monospace" font-size="14">[ MULTIFORMATO ]  [ SELF-HOSTED ]  [ DOCKER READY ]</text>
+  <g transform="translate(1002 142) scale(2)">
+    <path fill="#fff" fill-rule="evenodd" d="M32 4C17 4 8 14 8 28c0 10 4 16 12 19v9c0 3 2 4 5 4h14c3 0 5-1 5-4v-9c8-3 12-9 12-19C56 14 47 4 32 4ZM16 27c0-4 3-7 7-7s7 3 7 7-3 8-7 8-7-4-7-8ZM34 27c0-4 3-7 7-7s7 3 7 7-3 8-7 8-7-4-7-8ZM32 35l-5 9h10ZM25 49h3v8h-3ZM31 49h3v8h-3ZM37 49h3v8h-3Z"/>
+  </g>
+</svg>

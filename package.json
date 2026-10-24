@@ -1,0 +1,30 @@
+{
+  "name": "dead-library",
+  "version": "1.0.0",
+  "description": "Dead Smile Library - Catálogo de archivos de autoría con diseño terminal",
+  "main": "server.js",
+  "private": true,
+  "engines": { "node": ">=22.16" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test tests/*.test.js",
+    "check:repo": "node scripts/check-repository.js",
+    "admin:sync": "node scripts/admin-sync.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "chart.js": "^4.6.1",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "multer": "^2.5.0",
+    "proper-lockfile": "^4.1.2",
+    "sharp": "^0.35.5",
+    "sql.js": "^1.15.1"
+  },
+  "devDependencies": {
+    "yaml": "^2.9.1"
+  }
+}

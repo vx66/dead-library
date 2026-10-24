@@ -1,0 +1,19 @@
+# Allowlist: build context contains application code only.
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!server.js
+!lib/
+!lib/**
+!public/
+!public/css/
+!public/css/**
+!public/js/
+!public/js/**
+!public/views/
+!public/views/**
+!public/favicon.svg
+!scripts/
+!scripts/healthcheck.js
+!scripts/admin-sync.js

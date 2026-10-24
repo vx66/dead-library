@@ -1,0 +1,76 @@
+name: Test & Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Node.js 24 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm audit --omit=dev
+      - run: npm run check:repo
+
+  docker:
+    name: Build & smoke test (no publishing)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --pull -t dead-library:ci .
+      - name: Start an isolated test container
+        # Public fixtures for CI only. Real credentials are configured in Dokploy.
+        run: >-
+          docker run -d --init --name dead-library-ci
+          --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m
+          --mount source=dead-library-ci-data,target=/data
+          -e NODE_ENV=development -e PUBLIC_ORIGIN=http://localhost:3000
+          -e ADMIN_USERNAME=ci-admin -e ADMIN_PASSWORD=ci-only-password-not-a-real-secret
+          dead-library:ci
+      - name: Check readiness, non-root execution and persistence
+        shell: bash
+        run: |
+          wait_for_library() {
+            for attempt in $(seq 1 30); do
+              if docker exec dead-library-ci node scripts/healthcheck.js; then return 0; fi
+              sleep 2
+            done
+            docker logs dead-library-ci
+            return 1
+          }
+          wait_for_library
+          test "$(docker exec dead-library-ci id -u)" = "1000"
+          docker exec dead-library-ci node -e "require('fs').writeFileSync('/data/persistence-test', 'ok')"
+          docker restart dead-library-ci
+          wait_for_library
+          docker exec dead-library-ci node -e "require('assert').equal(require('fs').readFileSync('/data/persistence-test', 'utf8'), 'ok')"
+      - name: Container logs
+        if: failure()
+        run: docker logs dead-library-ci
+      - name: Remove CI resources
+        if: always()
+        run: |
+          docker rm -f dead-library-ci || true
+          docker volume rm dead-library-ci-data || true

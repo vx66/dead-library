@@ -1,0 +1,30 @@
+services:
+  library:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      DATA_DIR: /data
+      PUBLIC_ORIGIN: http://localhost:3000
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?Completa ADMIN_USERNAME en .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Completa ADMIN_PASSWORD en .env}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      TRUST_PROXY: ""
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - library-data-local:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+
+volumes:
+  library-data-local:

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Calavera blanca</title>
+  <path fill="#fff" fill-rule="evenodd" d="
+    M32 4C17 4 8 14 8 28c0 10 4 16 12 19v9c0 3 2 4 5 4h14c3 0 5-1 5-4v-9c8-3 12-9 12-19C56 14 47 4 32 4Z
+    M16 27c0-4 3-7 7-7s7 3 7 7-3 8-7 8-7-4-7-8Z
+    M34 27c0-4 3-7 7-7s7 3 7 7-3 8-7 8-7-4-7-8Z
+    M32 35l-5 9h10Z
+    M25 49h3v8h-3Z
+    M31 49h3v8h-3Z
+    M37 49h3v8h-3Z
+  "/>
+</svg>

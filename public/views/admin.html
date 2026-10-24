@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEAD SMILE LIBRARY - Admin</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="terminal-overlay"></div>
+
+  <header>
+    <a href="/" class="brand">DEAD SMILE LIBRARY</a>
+    <nav class="nav">
+      <a href="/" class="btn">ver catálogo</a>
+      <button type="button" id="logoutButton" class="btn secondary">salir</button>
+      <button class="theme-toggle" id="themeToggle" title="Cambiar tema">tema: <span id="themeLabel">oscuro</span></button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <h3>panel</h3>
+        <ul>
+          <li><a href="#subir" data-section="subir">subir obra</a></li>
+          <li><a href="#catalogo" data-section="catalogo">catálogo completo</a></li>
+          <li><a href="#categorias" data-section="categorias">categorías</a></li>
+          <li><a href="#stats" data-section="stats">ip y estadísticas</a></li>
+        </ul>
+      </aside>
+
+      <main class="admin-content" id="adminMain"></main>
+    </div>
+  </div>
+
+  <div class="footer">
+    dead smile library &copy; xergno
+  </div>
+
+  <script src="/vendor/chart.umd.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

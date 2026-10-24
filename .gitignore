@@ -1,0 +1,46 @@
+# Dependencies and generated output
+node_modules/
+coverage/
+test-results/
+playwright-report/
+*.log
+*.tmp
+*.tgz
+
+# Runtime secrets: publish templates only
+.env
+.env.*
+!.env.example
+!.env.dokploy.example
+.session-secret
+.data-lock
+.library-lock/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Private content and database backups
+db/
+data/
+uploads/
+covers/
+public/uploads/
+public/covers/
+backups/
+exports/
+*.db
+*.db-*
+*.db.*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.bak
+*.tar
+*.tar.gz
+
+# Editor / OS metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

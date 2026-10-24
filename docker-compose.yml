@@ -1,0 +1,36 @@
+services:
+  library:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATA_DIR: /data
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-https://library.deadsmile.org}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?Configura ADMIN_USERNAME en Environment}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Configura ADMIN_PASSWORD en Environment}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      TRUST_PROXY: ${TRUST_PROXY:?Configura la subred real de Traefik en TRUST_PROXY}
+    expose:
+      - "3000"
+    volumes:
+      - library-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  library-data:
