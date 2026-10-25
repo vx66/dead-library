@@ -158,7 +158,7 @@ Después verifica:
 5. Comprueba los botones dentro del popup.
 6. Haz un redeploy y confirma que la obra y sus descargas siguen disponibles.
 
-La imagen incorpora un healthcheck que consulta `127.0.0.1:3000/healthz` cada 30 segundos, sin depender del dominio, de DNS ni del proveedor de geolocalización.
+La imagen incorpora un healthcheck que consulta `127.0.0.1:3000/healthz` cada 30 segundos, sin depender del dominio ni de DNS.
 
 ### Una sola instancia
 

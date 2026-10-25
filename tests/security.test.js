@@ -37,7 +37,7 @@ secureTest('Cabeceras, CSP sin scripts inline, recursos locales y datos privados
   assert.match(response.headers.get('content-security-policy'), /script-src 'self';/);
   assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
-  assert.equal((await fetch(base + '/vendor/chart.umd.js')).status, 200);
+  assert.equal((await fetch(base + '/fonts/ibm-plex-mono-400.woff2')).status, 200);
   for (const url of ['/.env', '/db/library.db', '/db/.session-secret', '/lib/security.js', '/public/views/admin.html', '/views/admin.html', '/uploads/test.txt']) {
     const blocked = await fetch(base + url);
     assert.equal(blocked.status, 404, url);
@@ -47,7 +47,7 @@ secureTest('Cabeceras, CSP sin scripts inline, recursos locales y datos privados
 });
 
 secureTest('Autorización, CSRF, cambio de sesión al acceder y cierre solo mediante POST', async ({ base }, directory) => {
-  for (const url of ['/admin/works', '/admin/categories', '/admin/stats', '/admin/ip-info']) {
+  for (const url of ['/admin/works', '/admin/categories']) {
     const response = await fetch(base + url, { redirect: 'manual' });
     assert.equal(response.status, 401);
     assert.equal(response.headers.get('cache-control'), 'no-store');

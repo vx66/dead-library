@@ -7,12 +7,16 @@ const test = base.extend({
     const library = await createLibrary();
     try { await use(library); } finally { await library.dispose(); }
   }, { scope: 'worker' }],
-  page: async ({ page }, use) => {
+  page: async ({ page, library }, use) => {
     const errors = [];
+    const externalRequests = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.route('https://fonts.googleapis.com/**', route => route.fulfill({ contentType: 'text/css', body: '' }));
+    page.on('request', request => {
+      if (/^https?:/.test(request.url()) && new URL(request.url()).origin !== library.base) externalRequests.push(request.url());
+    });
     await use(page);
     expect(errors, 'No debe haber errores JavaScript').toEqual([]);
+    expect(externalRequests, 'La interfaz no debe consultar servicios externos').toEqual([]);
   }
 });
 
@@ -125,11 +129,12 @@ for (const profile of profiles) {
       await noPageOverflow(page);
     });
 
-    test('dashboard completo, edición, categorías y tráfico', async ({ page, library }) => {
+    test('dashboard, edición y categorías sin analítica de visitas', async ({ page, library }) => {
       await authenticate(page, library);
       await noPageOverflow(page);
       await touchControls(page);
-      await expect(page.locator('[data-section]')).toHaveCount(4);
+      await expect(page.locator('[data-section]')).toHaveCount(3);
+      await expect(page.locator('[data-section=stats]')).toHaveCount(0);
       await page.locator('[data-section=catalogo]').click();
       await expect(page.locator('[data-edit-work]')).toHaveCount(4);
       await noPageOverflow(page);
@@ -148,13 +153,7 @@ for (const profile of profiles) {
       await page.locator('[data-delete-category]').first().click();
       const confirmation = await usableDialog(page);
       await confirmation.getByRole('button', { name: 'cancelar', exact: true }).click();
-      await page.locator('[data-section=stats]').click();
-      await expect(page.locator('#trafficStatus')).toContainText('Actualizado:');
-      await expect(page.locator('canvas')).toHaveCount(3);
-      await noPageOverflow(page);
-      await touchControls(page);
-      await page.locator('#ipTableBody details').first().locator('summary').click();
-      await noPageOverflow(page);
+      await expect(page.locator('canvas')).toHaveCount(0);
       await page.locator('#themeToggle').click();
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
       await noPageOverflow(page);
@@ -225,6 +224,8 @@ test.describe('interacción y accesibilidad', () => {
     await page.goto(library.base + '/');
     await expect(page.locator('.work-card')).toHaveCount(4);
     await expect(page.locator('html')).toHaveAttribute('data-ink', 'white');
+    expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
+    expect(await page.context().cookies()).toEqual([]);
     const inheritedInk = await page.evaluate(() => {
       const paragraph = document.createElement('p');
       paragraph.textContent = 'Texto de prueba';
@@ -281,10 +282,9 @@ test.describe('interacción y accesibilidad', () => {
     await expect(page.locator('#uploadTitle')).toHaveCSS('color', 'rgb(17, 17, 17)');
     await page.locator('[data-ink-value=green]').click();
     await expect(page.locator('#uploadTitle')).toHaveCSS('color', 'rgb(8, 117, 43)');
-    await page.locator('[data-section=stats]').click();
-    await expect(page.locator('#trafficStatus')).toContainText('Actualizado:');
     await page.locator('[data-ink-value=blue]').click();
-    expect(await page.evaluate(() => Object.keys(Chart.instances).length)).toBe(3);
+    await expect(page.locator('#uploadTitle')).toHaveCSS('color', 'rgb(21, 75, 184)');
+    await expect(page.locator('[data-section=stats]')).toHaveCount(0);
     await noPageOverflow(page);
   });
 

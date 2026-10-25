@@ -1,11 +1,4 @@
 (function () {
-  const receipt = document.querySelector('meta[name="traffic-receipt"]')?.content;
-  if (receipt) {
-    const body = new Blob([JSON.stringify({ receipt })], { type: 'application/json' });
-    if (!navigator.sendBeacon || !navigator.sendBeacon('/api/traffic/confirm', body)) {
-      fetch('/api/traffic/confirm', { method: 'POST', body, keepalive: true }).catch(() => {});
-    }
-  }
   const themeToggle = document.getElementById('themeToggle');
   const themeLabel = document.getElementById('themeLabel');
 

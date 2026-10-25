@@ -26,28 +26,13 @@
     const next = current === 'dark' ? 'light' : 'dark';
     UI.setTheme(next);
     themeLabel.textContent = next === 'dark' ? 'oscuro' : 'claro';
-    if (lastTrafficStats && document.getElementById('trafficTable')) renderTrafficCharts(lastTrafficStats);
   });
 
   const adminMain = document.getElementById('adminMain');
-  let chartCountry = null;
-  let chartDay = null;
-  let chartClassification = null;
-  let statsRefreshTimer = null;
-  let statsSequence = 0;
-  let lastTrafficStats = null;
-  window.addEventListener('library:inkchange', () => {
-    if (lastTrafficStats && document.getElementById('trafficTable')) renderTrafficCharts(lastTrafficStats);
-  });
   let allCategories = [];
   let catalogWorks = [];
 
   async function showSection(name) {
-    clearInterval(statsRefreshTimer);
-    statsSequence++;
-    for (const chart of [chartCountry, chartDay, chartClassification]) if (chart) chart.destroy();
-    chartCountry = chartDay = chartClassification = null;
-    lastTrafficStats = null;
     document.querySelectorAll('.admin-sidebar a').forEach(a => {
       if (a.dataset.section === name) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
@@ -57,7 +42,6 @@
       if (name === 'subir') await renderUpload();
       else if (name === 'catalogo') await renderCatalog();
       else if (name === 'categorias') await renderCategories();
-      else if (name === 'stats') await renderStats();
     } catch (error) { adminMain.textContent = error.message; }
   }
 
@@ -545,166 +529,6 @@
       if (deleted) alertModal('categoría eliminada', `La categoría ${name} se eliminó correctamente.`);
     }, { once: true });
   };
-
-  /* ---------- Traffic ---------- */
-  const trafficCategories = {
-    browser: { label: 'Navegador probable', color: '#17c987' },
-    bot: { label: 'Bot declarado', color: '#e8b354' },
-    automated: { label: 'Automatizado probable', color: '#729dff' },
-    suspicious: { label: 'Sospechoso', color: '#ff5c70' },
-    unknown: { label: 'Sin clasificar', color: '#929292' }
-  };
-  const trafficTypes = { page: 'Portada', download: 'Descarga', api: 'API', asset: 'Recurso', admin: 'Admin', other: 'Otra ruta' };
-  const integer = value => new Intl.NumberFormat('es').format(value || 0);
-  function countryFlag(code) {
-    return typeof code === 'string' && /^[A-Z]{2}$/.test(code)
-      ? String.fromCodePoint(...[...code].map(letter => 127397 + letter.charCodeAt(0))) : '🌐';
-  }
-  function flagHtml(code, country) {
-    const label = country || 'Sin geolocalización';
-    return `<span class="country-flag" role="img" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${countryFlag(code)}</span>`;
-  }
-  function trafficDate(value) {
-    const date = new Date(String(value).replace(' ', 'T') + (/Z$/.test(value) ? '' : 'Z'));
-    return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('es', { dateStyle: 'short', timeStyle: 'medium' }).format(date);
-  }
-
-  async function renderStats() {
-    const metrics = [
-      ['requests', 'Solicitudes registradas'], ['pageViews', 'Páginas de inicio'],
-      ['browserPageViews', 'Páginas de navegador probable'], ['jsPageViews', 'Páginas con señal JavaScript'],
-      ['automationRequests', 'Bots + automatización'], ['suspiciousRequests', 'Solicitudes sospechosas'],
-      ['uniqueIps', 'IPs distintas'], ['downloadRequests', 'Solicitudes de descarga'], ['measuredBytes', 'Bytes de respuesta medidos']
-    ];
-    adminMain.innerHTML = `
-      <h3>tráfico y visitas</h3>
-      <p class="traffic-explanation">Una solicitud no equivale a una persona. La clasificación combina User-Agent, cabeceras, señal JavaScript y patrones de actividad; es una estimación, no una verificación de identidad.</p>
-      <form id="trafficFilters" class="traffic-filters">
-        <label>Período (UTC)<select name="days"><option value="1">Hoy</option><option value="7" selected>Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option></select></label>
-        <label>Clasificación<select name="category"><option value="">Todo el tráfico</option>${Object.entries(trafficCategories).map(([key, item]) => `<option value="${key}">${item.label}</option>`).join('')}</select></label>
-        <label>Tipo de petición<select name="type"><option value="">Todos los tipos</option>${Object.entries(trafficTypes).map(([key, label]) => `<option value="${key}">${label}</option>`).join('')}</select></label>
-        <label>IP exacta<input name="ip" type="search" maxlength="45" placeholder="IPv4 o IPv6" autocomplete="off"></label>
-        <button class="btn primary" type="submit">actualizar</button>
-      </form>
-      <div class="traffic-toolbar"><label><input type="checkbox" id="trafficAutoRefresh" checked> Actualizar cada 30 s</label><span id="trafficConnection">Tu conexión: cargando…</span></div>
-      <p id="trafficStatus" class="traffic-status" role="status" aria-live="polite"></p>
-      <div class="stats-grid traffic-metrics">${metrics.map(([key, label]) => `<div class="stat-card"><h4>${label}</h4><div class="value" data-metric="${key}" ${key === 'requests' ? 'id="totalVisits"' : ''}>—</div></div>`).join('')}</div>
-      <p id="trafficLegacyNotice" class="traffic-notice" hidden></p>
-      <div class="traffic-charts">
-        <div class="chart-wrap traffic-chart-wide"><canvas id="chartDay" aria-label="Solicitudes diarias por clasificación" role="img"></canvas></div>
-        <div class="chart-wrap"><canvas id="chartClassification" aria-label="Distribución de tráfico" role="img"></canvas></div>
-        <div class="chart-wrap"><canvas id="chartCountry" aria-label="Solicitudes por país" role="img"></canvas></div>
-      </div>
-      <p class="traffic-explanation">Se excluyen healthchecks, la señal JavaScript y consultas autenticadas del panel. IPs distintas no significa personas distintas. Las solicitudes de descarga pueden incluir rangos parciales; no certifican una lectura completa. 🌐 indica ubicación no disponible. País al pasar el cursor sobre la bandera. Fechas de tabla en tu zona horaria; gráficas por día UTC.</p>
-      <p class="table-scroll-hint">Puedes deslizar la tabla horizontalmente para consultar todas las columnas.</p>
-      <div class="table-wrap" role="region" aria-label="Solicitudes de tráfico" tabindex="0"><table id="trafficTable" class="traffic-table responsive-table" role="table"><thead role="rowgroup"><tr role="row">
-        <th scope="col" role="columnheader">IP</th><th scope="col" role="columnheader">País</th><th scope="col" role="columnheader">Ciudad</th><th scope="col" role="columnheader">Región</th><th scope="col" role="columnheader">ISP</th><th scope="col" role="columnheader">Clasificación</th><th scope="col" role="columnheader">Petición</th><th scope="col" role="columnheader">Respuesta</th><th scope="col" role="columnheader">Agente / señal</th><th scope="col" role="columnheader">Fecha</th>
-      </tr></thead><tbody id="ipTableBody" role="rowgroup"></tbody></table></div>
-      <div class="traffic-pagination"><button class="btn secondary" id="trafficPrevious" type="button">← anterior</button><span id="trafficPage"></span><button class="btn secondary" id="trafficNext" type="button">siguiente →</button></div>
-    `;
-    let currentPage = 1;
-    const form = document.getElementById('trafficFilters');
-    const load = async (requestedPage = 1) => {
-      const sequence = ++statsSequence;
-      const status = document.getElementById('trafficStatus');
-      status.textContent = 'Cargando tráfico…';
-      const params = new URLSearchParams(new FormData(form));
-      params.set('page', requestedPage);
-      try {
-        const response = await fetch('/admin/stats?' + params.toString());
-        const stats = await response.json();
-        if (!response.ok) throw new Error(stats.error || 'No se pudo cargar el tráfico');
-        if (sequence !== statsSequence || !document.getElementById('trafficTable')) return;
-        currentPage = stats.page;
-        lastTrafficStats = stats;
-        const values = { ...stats.counts, automationRequests: stats.byCategory.filter(row => ['bot', 'automated'].includes(row.category)).reduce((sum, row) => sum + row.c, 0) };
-        document.querySelectorAll('[data-metric]').forEach(element => {
-          const key = element.dataset.metric;
-          element.textContent = key === 'measuredBytes' ? formatBytes(values[key]) : integer(values[key]);
-        });
-        const notice = document.getElementById('trafficLegacyNotice');
-        notice.hidden = !stats.counts.legacyRows && !stats.droppedEvents;
-        notice.textContent = [
-          stats.counts.legacyRows ? `${integer(stats.counts.legacyRows)} registros históricos no tenían cabeceras ni estado HTTP: se conservan sin clasificar y no permiten reconstruir todas las solicitudes anteriores.` : '',
-          stats.droppedEvents ? `${integer(stats.droppedEvents)} solicitudes omitidas por saturación del registro desde el último reinicio; los contadores representan solo los registros guardados.` : ''
-        ].filter(Boolean).join(' ');
-        renderTrafficRows(stats.recent);
-        renderTrafficCharts(stats);
-        document.getElementById('trafficPage').textContent = `Página ${stats.page} de ${stats.pages} · ${integer(stats.total)} registros`;
-        document.getElementById('trafficPrevious').disabled = stats.page <= 1;
-        document.getElementById('trafficNext').disabled = stats.page >= stats.pages;
-        status.textContent = `Actualizado: ${new Date().toLocaleTimeString('es')} · contadores y gráficas según los filtros seleccionados`;
-      } catch (error) {
-        if (sequence === statsSequence && status.isConnected) status.textContent = error.message;
-      }
-    };
-    form.addEventListener('submit', event => { event.preventDefault(); load(1); });
-    form.querySelectorAll('select').forEach(select => select.addEventListener('change', () => load(1)));
-    document.getElementById('trafficPrevious').onclick = () => load(currentPage - 1);
-    document.getElementById('trafficNext').onclick = () => load(currentPage + 1);
-    statsRefreshTimer = setInterval(() => {
-      if (!document.hidden && document.getElementById('trafficAutoRefresh')?.checked) load(currentPage);
-    }, 30000);
-    fetch('/admin/ip-info').then(response => response.ok ? response.json() : null).then(info => {
-      const connection = document.getElementById('trafficConnection');
-      if (connection && info) connection.innerHTML = `Tu conexión: <code>${escapeHtml(info.ip)}</code> ${flagHtml(info.country_code, info.country)} ${escapeHtml(info.city)}`;
-    }).catch(() => {
-      const connection = document.getElementById('trafficConnection');
-      if (connection) connection.textContent = 'Tu conexión: ubicación no disponible';
-    });
-    await load();
-  }
-
-  function renderTrafficRows(rows) {
-    const tbody = document.getElementById('ipTableBody');
-    tbody.innerHTML = rows.length ? rows.map(row => {
-      const category = Object.hasOwn(trafficCategories, row.classification) ? row.classification : 'unknown';
-      const status = Number.isInteger(row.status_code) ? row.status_code : null;
-      return `<tr role="row">
-        <td role="cell" data-label="IP"><code class="traffic-ip">${escapeHtml(row.ip)}</code>${row.source === 'legacy' ? '<small class="traffic-muted">histórico</small>' : ''}</td>
-        <td role="cell" data-label="País" class="traffic-country">${flagHtml(row.country_code, row.country)}</td>
-        <td role="cell" data-label="Ciudad">${escapeHtml(row.city || '—')}</td><td role="cell" data-label="Región">${escapeHtml(row.region || '—')}</td><td role="cell" data-label="ISP">${escapeHtml(row.isp || '—')}</td>
-        <td role="cell" data-label="Clasificación"><span class="traffic-badge traffic-${category}">${trafficCategories[category].label}</span><small class="traffic-reason">${escapeHtml(row.classification_reason)}</small></td>
-        <td role="cell" data-label="Petición"><strong>${escapeHtml(row.method || '—')}</strong> <code class="traffic-path">${escapeHtml(row.page || '/')}</code><small>${escapeHtml(trafficTypes[row.request_type] || 'Otra ruta')}</small>${row.referrer ? `<small class="traffic-muted">Desde: ${escapeHtml(row.referrer)}</small>` : ''}</td>
-        <td role="cell" data-label="Respuesta"><span class="traffic-http ${status >= 400 ? 'traffic-http-error' : ''}">${status || '—'}${row.aborted ? ' · interrumpida' : ''}</span><small>${row.duration_ms === null ? '—' : integer(row.duration_ms) + ' ms'}</small><small>${row.response_bytes === null ? 'bytes no medidos' : formatBytes(row.response_bytes)}</small></td>
-        <td role="cell" data-label="Agente / señal">${row.js_confirmed ? '<span class="traffic-js">JS recibido</span>' : '<span class="traffic-muted">Sin señal JS</span>'}<details><summary>Ver agente</summary><code class="traffic-agent">${escapeHtml(row.user_agent || 'No disponible')}</code></details></td>
-        <td role="cell" data-label="Fecha" class="traffic-date">${escapeHtml(trafficDate(row.visited_at))}</td>
-      </tr>`;
-    }).join('') : '<tr><td colspan="10" class="empty-state">No hay solicitudes que coincidan con estos filtros.</td></tr>';
-  }
-
-  function renderTrafficCharts(stats) {
-    if (typeof Chart === 'undefined') return;
-    for (const chart of [chartCountry, chartDay, chartClassification]) if (chart) chart.destroy();
-    const styles = getComputedStyle(document.documentElement);
-    const color = styles.getPropertyValue('--text').trim();
-    const grid = styles.getPropertyValue('--border').trim();
-    const plugins = title => ({ legend: { labels: { color, font: { family: 'IBM Plex Mono', size: 12 } } }, title: { display: true, text: title.length > 32 ? ['Solicitudes por día', 'y clasificación (UTC)'] : title, color, font: { family: 'IBM Plex Mono', size: 12 } } });
-    const base = { responsive: true, maintainAspectRatio: false, animation: false };
-    chartClassification = new Chart(document.getElementById('chartClassification'), {
-      type: 'doughnut', data: {
-        labels: stats.byCategory.map(row => trafficCategories[row.category].label),
-        datasets: [{ data: stats.byCategory.map(row => row.c), backgroundColor: stats.byCategory.map(row => trafficCategories[row.category].color), borderWidth: 0 }]
-      }, options: { ...base, plugins: { ...plugins('Clasificación de solicitudes'), legend: { position: 'bottom', labels: { color, font: { family: 'IBM Plex Mono', size: 12 } } } } }
-    });
-    chartCountry = new Chart(document.getElementById('chartCountry'), {
-      type: 'bar', data: { labels: stats.byCountry.map(row => countryFlag(row.country_code)), datasets: [{ data: stats.byCountry.map(row => row.c), backgroundColor: styles.getPropertyValue('--accent').trim() }] },
-      options: { ...base, plugins: { ...plugins('Solicitudes por país'), legend: { display: false }, tooltip: { callbacks: { title: items => { const row = stats.byCountry[items[0].dataIndex]; return `${countryFlag(row.country_code)} ${row.country}`; } } } },
-        scales: { y: { beginAtZero: true, ticks: { color, precision: 0 }, grid: { color: grid } }, x: { ticks: { color, font: { size: 20 } }, grid: { display: false } } } }
-    });
-    const start = new Date(stats.since.replace(' ', 'T') + 'Z');
-    const days = Array.from({ length: stats.days }, (_, index) => {
-      const day = new Date(start); day.setUTCDate(day.getUTCDate() + index); return day.toISOString().slice(0, 10);
-    });
-    chartDay = new Chart(document.getElementById('chartDay'), {
-      type: 'bar', data: {
-        labels: days,
-        datasets: Object.entries(trafficCategories).map(([category, item]) => ({ label: item.label, backgroundColor: item.color,
-          data: days.map(day => stats.byDay.find(row => row.day === day && row.classification === category)?.c || 0) }))
-      }, options: { ...base, plugins: plugins('Solicitudes por día y clasificación (UTC)'),
-        scales: { y: { stacked: true, beginAtZero: true, ticks: { color, precision: 0 }, grid: { color: grid } }, x: { stacked: true, ticks: { color, maxTicksLimit: 14 }, grid: { display: false } } } }
-    });
-  }
 
   showSection('subir');
 })();

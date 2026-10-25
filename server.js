@@ -1,6 +1,5 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const fs = require('node:fs');
 const path = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { loadConfig } = require('./lib/config');
@@ -8,7 +7,6 @@ const { openDatabase } = require('./lib/database');
 const { installSecurity } = require('./lib/security');
 const { createStorage, storedPath, safeRemove } = require('./lib/storage');
 const { text, workData, validateId } = require('./lib/validation');
-const { createVisits } = require('./lib/visits');
 const { HttpError, asyncRoute } = require('./lib/errors');
 const { acquireDataLock } = require('./lib/data-lock');
 const { syncAdmin } = require('./lib/admin');
@@ -19,10 +17,7 @@ async function start() {
   const database = await openDatabase(config.databaseFile);
   if (await syncAdmin(database, config.admin)) console.log('[Admin] Credenciales de entorno sincronizadas');
   const storage = createStorage(config, database);
-  const visits = createVisits(database, { secret: config.secret, origin: config.origin });
-  const indexHtml = fs.readFileSync(path.join(config.root, 'public/views/index.html'), 'utf8');
   const app = express();
-  app.use(visits.middleware);
   app.get('/healthz', (req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json({ status: 'ok' });
@@ -66,7 +61,17 @@ async function start() {
   app.use('/css', express.static(path.join(config.root, 'public/css'), { dotfiles: 'deny' }));
   app.use('/js', express.static(path.join(config.root, 'public/js'), { dotfiles: 'deny' }));
   app.get('/favicon.svg', (req, res) => res.sendFile(path.join(config.root, 'public/favicon.svg')));
-  app.get('/vendor/chart.umd.js', (req, res) => res.sendFile(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js')));
+  const fontRoot = path.dirname(require.resolve('@fontsource/ibm-plex-mono/package.json'));
+  const fonts = new Map([
+    ['ibm-plex-mono-400.woff2', 'files/ibm-plex-mono-latin-400-normal.woff2'],
+    ['ibm-plex-mono-700.woff2', 'files/ibm-plex-mono-latin-700-normal.woff2'],
+    ['OFL.txt', 'LICENSE']
+  ]);
+  app.get('/fonts/:filename', (req, res, next) => {
+    const font = fonts.get(req.params.filename);
+    if (!font) throw new HttpError(404, 'Archivo no encontrado');
+    res.sendFile(path.join(fontRoot, font), { maxAge: '1d' }, error => { if (error) next(error); });
+  });
   app.get('/covers/:filename', (req, res, next) => {
     try {
       const filename = req.params.filename;
@@ -78,7 +83,7 @@ async function start() {
     } catch (error) { next(error); }
   });
   app.get('/', (req, res) => {
-    res.set('Cache-Control', 'no-store').type('html').send(indexHtml.replace('<!-- TRAFFIC_RECEIPT -->', visits.receiptMeta(req)));
+    res.sendFile(path.join(config.root, 'public/views/index.html'));
   });
   app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.get('/api/works', (req, res) => {
@@ -91,10 +96,6 @@ async function start() {
   });
   app.get('/api/works/:id', (req, res) => res.json(workResult(findWork(req.params.id))));
   app.get('/api/categories', (req, res) => res.json(database.all('SELECT id, name FROM categories ORDER BY name')));
-  app.post('/api/traffic/confirm', (req, res) => {
-    visits.confirm(req);
-    res.sendStatus(204);
-  });
   app.get('/download/:token', (req, res, next) => {
     if (!/^[a-f0-9]{64}$/.test(req.params.token)) throw new HttpError(404, 'Archivo no encontrado');
     const file = database.get('SELECT * FROM files WHERE download_token = ?', [req.params.token]);
@@ -143,7 +144,7 @@ async function start() {
     const data = workData(req.body, database);
     const cover = await storage.prepare(req);
     const workId = database.transaction(() => {
-      database.run('INSERT INTO works (title, author, year, category, description, cover_filename, uploader_ip) VALUES (?, ?, ?, ?, ?, ?, ?)', [...data, cover, visits.ip(req)]);
+      database.run('INSERT INTO works (title, author, year, category, description, cover_filename) VALUES (?, ?, ?, ?, ?, ?)', [...data, cover]);
       const id = database.get('SELECT last_insert_rowid() AS id').id;
       addFiles(id, req.files.files);
       return id;
@@ -197,11 +198,6 @@ async function start() {
     });
     res.json({ success: true });
   });
-  app.get('/admin/stats', (req, res) => res.json(visits.stats(req.query)));
-  app.get('/admin/ip-info', asyncRoute(async (req, res) => {
-    const ip = visits.ip(req);
-    res.json({ ip, ...await visits.lookup(ip) });
-  }));
 
   app.use((req, res, next) => next(new HttpError(404, 'Página no encontrada')));
   app.use((error, req, res, next) => {
@@ -231,10 +227,7 @@ async function start() {
     process.exitCode = 1;
   });
   const shutdown = () => {
-    server.close(async () => {
-      try { await visits.close(); database.close(); process.exit(0); }
-      catch (_) { process.exit(1); }
-    });
+    server.close(() => { database.close(); process.exit(0); });
     setTimeout(() => process.exit(0), 5000).unref();
   };
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, shutdown);

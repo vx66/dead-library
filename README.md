@@ -33,7 +33,7 @@
 | Popup con descripción y datos completos | Subida de varios formatos en una misma obra |
 | Descargas EPUB, PDF, TXT y cualquier otro formato | Edición en modal, cambio de portada y descripción |
 | Categorías visibles cuando tienen contenido | Gestión de categorías y confirmaciones visuales |
-| Orden alfabético o por fecha de subida | Tráfico clasificado, banderas de países y geolocalización aproximada |
+| Orden alfabético o por fecha de subida | Administración de archivos y portadas sin panel de analítica |
 | Texto blanco o neón, modo oscuro/claro e IBM Plex Mono | Autenticación y credenciales configuradas por entorno |
 
 > **Una obra, varias descargas.** Sube un texto en EPUB y PDF bajo la misma ficha. Sus lectores eligen el formato dentro del popup de detalle.
@@ -135,7 +135,7 @@ Plantillas publicables: [desarrollo](.env.example) · [Dokploy](.env.dokploy.exa
 
 ```text
 /data/                     # En Docker; ./db en Node local
-├── library.db             # Catálogo, hash del admin, visitas y sesiones
+├── library.db             # Catálogo, hash del admin y sesiones
 ├── .session-secret        # Secreto generado si no se suministra por entorno
 ├── .library-lock/         # Lease de escritura de la única instancia
 ├── uploads/               # Archivos originales
@@ -178,11 +178,23 @@ npm.cmd run test:responsive
 
 Consulta la [matriz responsive y sus comprobaciones](docs/RESPONSIVE.md).
 
-### Tráfico con contexto
+### Privacidad y datos
 
-El dashboard separa **navegadores probables**, **bots declarados**, **automatización**, **actividad sospechosa** y registros **sin clasificar**. Incluye filtros, tres gráficas, paginación y banderas emoji, conservando la tabla de IP, ciudad, región e ISP.
+La aplicación no incluye analítica de visitas, panel de IPs/ISP ni geolocalización. No envía señales JavaScript de seguimiento ni consulta proveedores externos de ubicación. La tipografía IBM Plex Mono también se sirve desde el propio sitio, con su licencia incluida en la dependencia.
 
-Las solicitudes no equivalen a personas. La señal JavaScript es una evidencia adicional, no una prueba de visita humana; los registros antiguos se preservan sin inventar una clasificación. [Cómo se mide el tráfico →](docs/TRAFFIC.md)
+Al actualizar desde versiones con analítica, el arranque elimina la tabla de visitas y las IPs de subida de la **base activa**, y compacta SQLite. Conserva obras, archivos, portadas, tokens, cuenta administradora y sesiones. No crea un nuevo respaldo con los datos de visitas eliminados.
+
+Los respaldos anteriores no se modifican: pueden conservar datos de las versiones antiguas. Revisa su retención por separado, al igual que los logs y respaldos del hosting, Dokploy, Traefik o un CDN.
+
+Los límites de seguridad continúan procesando la IP temporalmente en memoria para frenar abusos, sin añadirla a la base de datos ni generar historiales de navegación. Las cookies de autenticación del admin y las preferencias locales de tema/color mantienen su función técnica.
+
+Las preferencias se guardan únicamente después de una elección. Para inspeccionar el código y el esquema local **sin modificar la base**:
+
+```powershell
+npm.cmd run audit:privacy
+```
+
+Consulta el [informe técnico de auditoría local](docs/LOCAL-PRIVACY-AUDIT.md), que distingue el código actual de los datos históricos pendientes de migración y documenta las limitaciones. Esta comprobación no certifica legalidad ni describe el historial como si nunca hubiese existido analítica.
 
 ## 🗂 Estructura
 

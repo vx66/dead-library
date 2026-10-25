@@ -28,11 +28,6 @@ async function createLibrary() {
         [workId, filename, 'NombreDelArchivoSinEspacios'.repeat(8) + '.' + format, format, Buffer.byteLength(content), randomBytes(32).toString('hex')]);
     }
   }
-  database.run(`INSERT INTO visits (ip, country, country_code, city, region, isp, page, classification, classification_reason,
-    method, status_code, user_agent, is_page_view, request_type, source, referrer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ['203.0.113.17', 'Chile', 'CL', 'Una ciudad de prueba', 'Región de prueba', 'ProveedorDeConexionConUnNombreExtenso'.repeat(3),
-    '/ruta-de-prueba/' + 'segmento'.repeat(30), 'browser', 'Clasificación orientativa de prueba', 'GET', 200,
-    'Mozilla/5.0 ' + 'UserAgentDePrueba'.repeat(28), 0, 'other', 'http', 'https://example.org/' + 'referencia'.repeat(25)]);
   database.save();
   database.close();
   try {

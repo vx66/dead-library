@@ -3,11 +3,11 @@
     try { return localStorage.getItem('ds_theme') === 'light' ? 'light' : 'dark'; }
     catch (_) { return 'dark'; }
   }
-  function setTheme(theme) {
+  function setTheme(theme, { persist = true } = {}) {
     document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem('ds_theme', theme); } catch (_) {}
+    if (persist) { try { localStorage.setItem('ds_theme', theme); } catch (_) {} }
   }
-  setTheme(getTheme());
+  setTheme(getTheme(), { persist: false });
 
   const inks = [
     ['white', 'blanco'],
@@ -29,14 +29,14 @@
       button.title = button.dataset.inkLabel;
     });
   }
-  function setInk(value) {
+  function setInk(value, { persist = true } = {}) {
     const selected = isInk(value) ? value : 'white';
     document.documentElement.setAttribute('data-ink', selected);
-    try { localStorage.setItem('ds_ink', selected); } catch (_) {}
+    if (persist) { try { localStorage.setItem('ds_ink', selected); } catch (_) {} }
     syncInkButtons();
     window.dispatchEvent(new CustomEvent('library:inkchange', { detail: selected }));
   }
-  setInk(getInk());
+  setInk(getInk(), { persist: false });
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-ink-picker]').forEach(picker => {
       for (const [key, name] of inks) {

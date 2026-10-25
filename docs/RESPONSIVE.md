@@ -9,7 +9,7 @@ La interfaz se comprueba con Playwright en **Chromium y WebKit**, con tamaños d
 - Texto de entradas de al menos 16 px para evitar el zoom automático al enfocar campos en iOS.
 - Encabezado rotativo con espacio reservado para todas las frases. La altura permanece estable durante escritura y borrado; los caracteres compuestos no se cortan.
 - Navegación del dashboard visible en tablets y móviles, con indicación de pestaña actual.
-- Tablas de descargas y tráfico presentadas como fichas etiquetadas en pantallas pequeñas. En tablets, las tablas anchas permiten desplazamiento dentro de su propia región.
+- Tablas de descargas presentadas como fichas etiquetadas en pantallas pequeñas. En tablets, las tablas anchas permiten desplazamiento dentro de su propia región.
 - Popups con encabezado y cierre accesibles, desplazamiento interno y ajuste al área disponible mediante Visual Viewport.
 - Bloqueo del fondo al abrir un popup y recuperación de la posición y foco al cerrarlo.
 - Soporte de áreas seguras, tema oscuro/claro y preferencia de movimiento reducido.
@@ -42,6 +42,6 @@ npx playwright install --with-deps chromium webkit
 npm run test:responsive
 ```
 
-La suite comprueba catálogo, filtros, descargas, login, subida, edición, categorías, confirmaciones, gráficas y panel de tráfico. También verifica ausencia de desbordamiento horizontal del documento, tamaño de controles y ajuste de los modales, además de los siete colores, su persistencia, la selección explícita de blanco y el funcionamiento si el almacenamiento local está bloqueado.
+La suite comprueba catálogo, filtros, descargas, login, subida, edición, categorías y confirmaciones. También verifica ausencia de desbordamiento horizontal del documento, tamaño de controles y ajuste de los modales, además de los siete colores, su persistencia, la selección explícita de blanco y el funcionamiento si el almacenamiento local está bloqueado. Comprueba que la interfaz no haga solicitudes a servicios externos.
 
 Los resultados y las trazas de fallos se generan en `test-results/`, excluido de Git. GitHub Actions ejecuta esta suite antes de la comprobación Docker.
