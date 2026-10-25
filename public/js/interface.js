@@ -10,10 +10,11 @@
   setTheme(getTheme());
 
   const inks = [
+    ['white', 'blanco'],
     ['green', 'verde'], ['yellow', 'amarillo'], ['red', 'rojo'],
     ['blue', 'azul'], ['fuchsia', 'fucsia'], ['magenta', 'magenta']
   ];
-  const isInk = value => value === 'white' || inks.some(([key]) => key === value);
+  const isInk = value => inks.some(([key]) => key === value);
   function getInk() {
     try {
       const value = localStorage.getItem('ds_ink');
@@ -25,7 +26,7 @@
     document.querySelectorAll('[data-ink-value]').forEach(button => {
       const active = button.dataset.inkValue === selected;
       button.setAttribute('aria-pressed', String(active));
-      button.title = active ? `${button.dataset.inkLabel} · pulsa otra vez para volver al blanco` : button.dataset.inkLabel;
+      button.title = button.dataset.inkLabel;
     });
   }
   function setInk(value) {
@@ -43,9 +44,9 @@
         button.type = 'button';
         button.className = 'color-swatch';
         button.dataset.inkValue = key;
-        button.dataset.inkLabel = `Texto ${name} neón`;
+        button.dataset.inkLabel = key === 'white' ? 'Texto blanco' : `Texto ${name} neón`;
         button.setAttribute('aria-label', button.dataset.inkLabel);
-        button.addEventListener('click', () => setInk(document.documentElement.getAttribute('data-ink') === key ? 'white' : key));
+        button.addEventListener('click', () => setInk(key));
         picker.appendChild(button);
       }
     });

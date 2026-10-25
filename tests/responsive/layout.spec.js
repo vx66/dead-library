@@ -31,11 +31,16 @@ async function noPageOverflow(page) {
 }
 
 async function touchControls(page, scope = 'body') {
-  const undersized = await page.locator(scope).evaluate(element => [...element.querySelectorAll('button, select, input:not([type=checkbox]), summary')].filter(control => {
+  const undersized = await page.locator(scope).evaluate(element => [...element.querySelectorAll('button:not(.color-swatch), select, input:not([type=checkbox]), summary')].filter(control => {
     const box = control.getBoundingClientRect();
     return box.width > 0 && box.height > 0 && getComputedStyle(control).visibility !== 'hidden' && box.height < 43.5;
   }).map(control => control.outerHTML.slice(0, 160)));
   expect(undersized, 'Los controles visibles deben tener al menos 44 px de altura').toEqual([]);
+  const compactSwatches = await page.locator(scope).evaluate(element => [...element.querySelectorAll('.color-swatch')].filter(control => {
+    const box = control.getBoundingClientRect();
+    return box.width > 0 && box.height > 0 && (box.width < 24 || box.height < 24);
+  }).length);
+  expect(compactSwatches, 'La paleta compacta debe conservar botones de al menos 24 px').toBe(0);
   const smallInputs = await page.locator(scope).evaluate(element => [...element.querySelectorAll('input:not([type=checkbox]), select, textarea')].filter(control => {
     const box = control.getBoundingClientRect();
     return box.width > 0 && box.height > 0 && parseFloat(getComputedStyle(control).fontSize) < 16;
@@ -233,17 +238,21 @@ test.describe('interacción y accesibilidad', () => {
     await expect(page.locator('.rotary')).toHaveCSS('color', 'rgb(255, 255, 255)');
     await expect(page.locator('.card-title').first()).toHaveCSS('color', 'rgb(255, 255, 255)');
     await expect(page.locator('.catalog-shell')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
-    await expect(page.locator('.color-swatch')).toHaveCount(6);
+    await expect(page.locator('.color-swatch')).toHaveCount(7);
+    await expect(page.getByText('Repite → blanco', { exact: true })).toHaveCount(0);
     const colors = [
+      ['white', 'rgb(255, 255, 255)'],
       ['green', 'rgb(57, 255, 20)'], ['yellow', 'rgb(255, 255, 51)'], ['red', 'rgb(255, 77, 90)'],
       ['blue', 'rgb(77, 157, 255)'], ['fuchsia', 'rgb(255, 79, 163)'], ['magenta', 'rgb(255, 0, 255)']
     ];
     for (const [name, color] of colors) {
       const button = page.locator(`[data-ink-value="${name}"]`);
-      await expect(button).toHaveCSS('background-color', color);
+      expect(await button.evaluate(element => getComputedStyle(element, '::before').backgroundColor)).toBe(color);
+      expect(await button.evaluate(element => getComputedStyle(element, '::before').width)).toBe('16px');
+      expect(await button.evaluate(element => getComputedStyle(element, '::before').height)).toBe('16px');
       const box = await button.boundingBox();
-      expect(box.width).toBe(44);
-      expect(box.height).toBe(44);
+      expect(box.width).toBe(24);
+      expect(box.height).toBe(24);
       await button.click();
       await expect(button).toHaveAttribute('aria-pressed', 'true');
       await expect(page.locator('.color-swatch[aria-pressed=true]')).toHaveCount(1);
@@ -262,9 +271,10 @@ test.describe('interacción y accesibilidad', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     await expect(page.locator('.catalog-shell')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
     await expect(page.locator('.card-title').first()).toHaveCSS('color', 'rgb(255, 0, 255)');
-    await page.locator('[data-ink-value=magenta]').click();
+    await page.locator('[data-ink-value=white]').click();
     await expect(page.locator('html')).toHaveAttribute('data-ink', 'white');
-    await expect(page.locator('.color-swatch[aria-pressed=true]')).toHaveCount(0);
+    await expect(page.locator('[data-ink-value=white]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.color-swatch[aria-pressed=true]')).toHaveCount(1);
     await expect(page.locator('.card-title').first()).toHaveCSS('color', 'rgb(255, 255, 255)');
     await noPageOverflow(page);
     await authenticate(page, library);
@@ -289,6 +299,8 @@ test.describe('interacción y accesibilidad', () => {
     await page.locator('[data-ink-value=green]').click();
     await expect(page.locator('html')).toHaveAttribute('data-ink', 'green');
     await page.locator('[data-ink-value=green]').click();
+    await expect(page.locator('html')).toHaveAttribute('data-ink', 'green');
+    await page.locator('[data-ink-value=white]').click();
     await expect(page.locator('html')).toHaveAttribute('data-ink', 'white');
   });
 });

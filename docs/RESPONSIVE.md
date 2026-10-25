@@ -13,7 +13,7 @@ La interfaz se comprueba con Playwright en **Chromium y WebKit**, con tamaños d
 - Popups con encabezado y cierre accesibles, desplazamiento interno y ajuste al área disponible mediante Visual Viewport.
 - Bloqueo del fondo al abrir un popup y recuperación de la posición y foco al cerrarlo.
 - Soporte de áreas seguras, tema oscuro/claro y preferencia de movimiento reducido.
-- Selector de seis colores neón con controles cuadrados de 44×44 px, estado seleccionado accesible y distribución de tres columnas en móviles. El catálogo negro mantiene contraste para los tonos neón.
+- Selector compacto de blanco y seis colores neón: cuadrados visibles de 16×16 px dentro de botones de 24×24 px, con selección directa y estado accesible. La paleta se ajusta al espacio disponible junto al tema. El catálogo negro mantiene contraste para los tonos neón.
 
 ## Matriz de tamaños
 
@@ -42,6 +42,6 @@ npx playwright install --with-deps chromium webkit
 npm run test:responsive
 ```
 
-La suite comprueba catálogo, filtros, descargas, login, subida, edición, categorías, confirmaciones, gráficas y panel de tráfico. También verifica ausencia de desbordamiento horizontal del documento, tamaño de controles y ajuste de los modales, además de los seis colores, su persistencia, el retorno al blanco y el funcionamiento si el almacenamiento local está bloqueado.
+La suite comprueba catálogo, filtros, descargas, login, subida, edición, categorías, confirmaciones, gráficas y panel de tráfico. También verifica ausencia de desbordamiento horizontal del documento, tamaño de controles y ajuste de los modales, además de los siete colores, su persistencia, la selección explícita de blanco y el funcionamiento si el almacenamiento local está bloqueado.
 
 Los resultados y las trazas de fallos se generan en `test-results/`, excluido de Git. GitHub Actions ejecuta esta suite antes de la comprobación Docker.

@@ -42,7 +42,7 @@ El repositorio contiene la aplicación. **No incluye la biblioteca personal, arc
 
 ### Tu color, tu biblioteca
 
-El texto es blanco por defecto. Junto al selector de tema hay seis cuadrados neón: **verde, amarillo, rojo, azul, fucsia y magenta**. Pulsa un color para aplicarlo y repite el color activo para volver al blanco. La preferencia se guarda localmente en el navegador.
+El texto es blanco por defecto. Junto al selector de tema hay siete cuadrados compactos: **blanco, verde, amarillo, rojo, azul, fucsia y magenta**. Cada cuadrado aplica directamente su color; el blanco permite volver al aspecto inicial. La preferencia se guarda localmente en el navegador.
 
 El catálogo se presenta dentro de un contenedor negro sobre la grilla, también al utilizar el tema claro. En superficies claras, la interfaz usa variantes más oscuras del tono elegido para conservar la legibilidad.
 
@@ -169,7 +169,7 @@ GitHub Actions prueba la aplicación en **Linux y Windows**, verifica las vistas
 
 ### Móviles y tablets
 
-Catálogo adaptable, controles táctiles de al menos 44 px, popups ajustados al área visible y tablas que se convierten en fichas en móviles. El texto terminal reserva su altura para que las frases no desplacen la página.
+Catálogo adaptable, controles principales de al menos 44 px, paleta de color compacta, popups ajustados al área visible y tablas que se convierten en fichas en móviles. El texto terminal reserva su altura para que las frases no desplacen la página.
 
 ```powershell
 npx.cmd playwright install chromium webkit
