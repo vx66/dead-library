@@ -33,12 +33,18 @@
 | Popup con descripción y datos completos | Subida de varios formatos en una misma obra |
 | Descargas EPUB, PDF, TXT y cualquier otro formato | Edición en modal, cambio de portada y descripción |
 | Categorías visibles cuando tienen contenido | Gestión de categorías y confirmaciones visuales |
-| Orden alfabético o por fecha de subida | Estadísticas de visitas y geolocalización aproximada |
-| Modo oscuro/claro, grilla tenue e IBM Plex Mono | Autenticación y credenciales configuradas por entorno |
+| Orden alfabético o por fecha de subida | Tráfico clasificado, banderas de países y geolocalización aproximada |
+| Texto blanco o neón, modo oscuro/claro e IBM Plex Mono | Autenticación y credenciales configuradas por entorno |
 
 > **Una obra, varias descargas.** Sube un texto en EPUB y PDF bajo la misma ficha. Sus lectores eligen el formato dentro del popup de detalle.
 
 El repositorio contiene la aplicación. **No incluye la biblioteca personal, archivos subidos, base de datos ni credenciales reales.**
+
+### Tu color, tu biblioteca
+
+El texto es blanco por defecto. Junto al selector de tema hay seis cuadrados neón: **verde, amarillo, rojo, azul, fucsia y magenta**. Pulsa un color para aplicarlo y repite el color activo para volver al blanco. La preferencia se guarda localmente en el navegador.
+
+El catálogo se presenta dentro de un contenedor negro sobre la grilla, también al utilizar el tema claro. En superficies claras, la interfaz usa variantes más oscuras del tono elegido para conservar la legibilidad.
 
 ## ⚡ Inicio rápido
 
@@ -157,9 +163,26 @@ npm.cmd test
 npm.cmd audit --omit=dev
 ```
 
-GitHub Actions prueba la aplicación en **Linux y Windows**, construye la imagen Docker y comprueba inicio, usuario no-root y persistencia. El workflow **no publica imágenes ni realiza despliegues**. Dependabot propone actualizaciones de dependencias.
+GitHub Actions prueba la aplicación en **Linux y Windows**, verifica las vistas móviles/tablet con **Chromium y WebKit**, construye la imagen Docker y comprueba inicio, usuario no-root y persistencia. El workflow **no publica imágenes ni realiza despliegues**. Dependabot propone actualizaciones de dependencias.
 
 `GET /healthz` ofrece una comprobación mínima de disponibilidad para Docker sin exponer datos internos.
+
+### Móviles y tablets
+
+Catálogo adaptable, controles táctiles de al menos 44 px, popups ajustados al área visible y tablas que se convierten en fichas en móviles. El texto terminal reserva su altura para que las frases no desplacen la página.
+
+```powershell
+npx.cmd playwright install chromium webkit
+npm.cmd run test:responsive
+```
+
+Consulta la [matriz responsive y sus comprobaciones](docs/RESPONSIVE.md).
+
+### Tráfico con contexto
+
+El dashboard separa **navegadores probables**, **bots declarados**, **automatización**, **actividad sospechosa** y registros **sin clasificar**. Incluye filtros, tres gráficas, paginación y banderas emoji, conservando la tabla de IP, ciudad, región e ISP.
+
+Las solicitudes no equivalen a personas. La señal JavaScript es una evidencia adicional, no una prueba de visita humana; los registros antiguos se preservan sin inventar una clasificación. [Cómo se mide el tráfico →](docs/TRAFFIC.md)
 
 ## 🗂 Estructura
 

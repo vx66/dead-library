@@ -32,9 +32,23 @@ jobs:
       - run: npm audit --omit=dev
       - run: npm run check:repo
 
+  responsive:
+    name: Mobile & tablet / Chromium + WebKit
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run test:responsive
+
   docker:
     name: Build & smoke test (no publishing)
-    needs: test
+    needs: [test, responsive]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

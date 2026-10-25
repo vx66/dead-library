@@ -19,8 +19,10 @@ async function start() {
   const database = await openDatabase(config.databaseFile);
   if (await syncAdmin(database, config.admin)) console.log('[Admin] Credenciales de entorno sincronizadas');
   const storage = createStorage(config, database);
-  const visits = createVisits(database);
+  const visits = createVisits(database, { secret: config.secret, origin: config.origin });
+  const indexHtml = fs.readFileSync(path.join(config.root, 'public/views/index.html'), 'utf8');
   const app = express();
+  app.use(visits.middleware);
   app.get('/healthz', (req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json({ status: 'ok' });
@@ -76,8 +78,7 @@ async function start() {
     } catch (error) { next(error); }
   });
   app.get('/', (req, res) => {
-    res.sendFile(path.join(config.root, 'public/views/index.html'));
-    visits.record(req).catch(() => console.error('[Visitas] No se pudo registrar una visita'));
+    res.set('Cache-Control', 'no-store').type('html').send(indexHtml.replace('<!-- TRAFFIC_RECEIPT -->', visits.receiptMeta(req)));
   });
   app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.get('/api/works', (req, res) => {
@@ -90,6 +91,10 @@ async function start() {
   });
   app.get('/api/works/:id', (req, res) => res.json(workResult(findWork(req.params.id))));
   app.get('/api/categories', (req, res) => res.json(database.all('SELECT id, name FROM categories ORDER BY name')));
+  app.post('/api/traffic/confirm', (req, res) => {
+    visits.confirm(req);
+    res.sendStatus(204);
+  });
   app.get('/download/:token', (req, res, next) => {
     if (!/^[a-f0-9]{64}$/.test(req.params.token)) throw new HttpError(404, 'Archivo no encontrado');
     const file = database.get('SELECT * FROM files WHERE download_token = ?', [req.params.token]);
@@ -192,12 +197,7 @@ async function start() {
     });
     res.json({ success: true });
   });
-  app.get('/admin/stats', (req, res) => res.json({
-    total: database.get('SELECT COUNT(*) AS count FROM visits').count,
-    recent: database.all('SELECT * FROM visits ORDER BY visited_at DESC, id DESC LIMIT 100'),
-    byCountry: database.all('SELECT country, COUNT(*) AS c FROM visits GROUP BY country ORDER BY c DESC LIMIT 10'),
-    byDay: database.all("SELECT DATE(visited_at) AS day, COUNT(*) AS c FROM visits WHERE visited_at >= date('now', '-13 days') GROUP BY DATE(visited_at) ORDER BY day")
-  }));
+  app.get('/admin/stats', (req, res) => res.json(visits.stats(req.query)));
   app.get('/admin/ip-info', asyncRoute(async (req, res) => {
     const ip = visits.ip(req);
     res.json({ ip, ...await visits.lookup(ip) });
@@ -231,7 +231,10 @@ async function start() {
     process.exitCode = 1;
   });
   const shutdown = () => {
-    server.close(() => { database.close(); process.exit(0); });
+    server.close(async () => {
+      try { await visits.close(); database.close(); process.exit(0); }
+      catch (_) { process.exit(1); }
+    });
     setTimeout(() => process.exit(0), 5000).unref();
   };
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, shutdown);

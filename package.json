@@ -4,11 +4,14 @@
   "description": "Dead Smile Library - Catálogo de archivos de autoría con diseño terminal",
   "main": "server.js",
   "private": true,
-  "engines": { "node": ">=22.16" },
+  "engines": {
+    "node": ">=22.16"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node --test tests/*.test.js",
+    "test:responsive": "playwright test",
     "check:repo": "node scripts/check-repository.js",
     "admin:sync": "node scripts/admin-sync.js"
   },
@@ -25,6 +28,7 @@
     "sql.js": "^1.15.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "yaml": "^2.9.1"
   }
 }

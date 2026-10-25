@@ -25,7 +25,7 @@ function rawFetch(url, options = {}) {
       response.on('end', () => {
         const resultHeaders = new Headers();
         for (let index = 0; index < response.rawHeaders.length; index += 2) resultHeaders.append(response.rawHeaders[index], response.rawHeaders[index + 1]);
-        resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers: resultHeaders }));
+        resolve(new Response([204, 205, 304].includes(response.statusCode) ? null : Buffer.concat(chunks), { status: response.statusCode, headers: resultHeaders }));
       });
     });
     request.on('error', reject);

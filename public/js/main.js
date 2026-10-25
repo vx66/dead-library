@@ -1,16 +1,22 @@
 (function () {
+  const receipt = document.querySelector('meta[name="traffic-receipt"]')?.content;
+  if (receipt) {
+    const body = new Blob([JSON.stringify({ receipt })], { type: 'application/json' });
+    if (!navigator.sendBeacon || !navigator.sendBeacon('/api/traffic/confirm', body)) {
+      fetch('/api/traffic/confirm', { method: 'POST', body, keepalive: true }).catch(() => {});
+    }
+  }
   const themeToggle = document.getElementById('themeToggle');
   const themeLabel = document.getElementById('themeLabel');
 
-  const savedTheme = localStorage.getItem('ds_theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', savedTheme);
+  const UI = window.DeadLibraryUI;
+  const savedTheme = UI.getTheme();
   themeLabel.textContent = savedTheme === 'dark' ? 'oscuro' : 'claro';
 
   themeToggle.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
     const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('ds_theme', next);
+    UI.setTheme(next);
     themeLabel.textContent = next === 'dark' ? 'oscuro' : 'claro';
   });
 
@@ -37,60 +43,67 @@
   ];
 
   const rotaryEl = document.getElementById('rotaryText');
-  let idx = -1;
-
-  function typeWriter(text, cb) {
-    let i = 0;
-    rotaryEl.textContent = '';
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const segmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter('es', { granularity: 'grapheme' }) : null;
+  const characters = text => segmenter ? Array.from(segmenter.segment(text), part => part.segment) : Array.from(text);
+  const sizer = document.createElement('span');
+  sizer.className = 'rotary-sizer';
+  sizer.setAttribute('aria-hidden', 'true');
+  for (const phrase of rotaryTexts) {
+    const sizingText = document.createElement('span');
+    sizingText.className = 'rotary-sizing-text';
+    const points = characters(phrase);
+    const tail = document.createElement('span');
+    tail.className = 'rotary-tail';
+    tail.textContent = points.pop() || '';
     const cursor = document.createElement('span');
     cursor.className = 'rotary-cursor';
     cursor.textContent = '█';
-    rotaryEl.appendChild(cursor);
-    function step() {
-      if (i < text.length) {
-        rotaryEl.textContent = text.slice(0, i);
-        rotaryEl.appendChild(cursor);
-        i++;
-        setTimeout(step, 40);
-      } else {
-        rotaryEl.textContent = text;
-        rotaryEl.appendChild(cursor);
-        setTimeout(() => {
-          eraseWriter(() => cb());
-        }, 5000);
-      }
-    }
-    step();
+    tail.appendChild(cursor);
+    sizingText.append(points.join(''), tail);
+    sizer.appendChild(sizingText);
   }
-
-  function eraseWriter(cb) {
-    const text = rotaryEl.textContent.replace('█', '');
-    let i = text.length;
-    function step() {
-      if (i > 0) {
-        rotaryEl.textContent = text.slice(0, i - 1);
-        rotaryEl.appendChild(document.createElement('span'));
-        rotaryEl.lastChild.className = 'rotary-cursor';
-        rotaryEl.lastChild.textContent = '█';
-        i--;
-        setTimeout(step, 25);
-      } else {
-        cb();
-      }
-    }
-    step();
+  const message = document.createElement('span');
+  message.className = 'rotary-message';
+  const prefix = document.createElement('span');
+  prefix.className = 'rotary-prefix';
+  const tail = document.createElement('span');
+  tail.className = 'rotary-tail';
+  const lastCharacter = document.createElement('span');
+  const cursor = document.createElement('span');
+  cursor.className = 'rotary-cursor';
+  cursor.textContent = '█';
+  tail.append(lastCharacter, cursor);
+  message.append(prefix, tail);
+  rotaryEl.append(sizer, message);
+  let idx = -1;
+  let rotaryTimer;
+  function draw(points, count) {
+    prefix.textContent = points.slice(0, Math.max(0, count - 1)).join('');
+    lastCharacter.textContent = count ? points[count - 1] : '';
   }
-
   function next() {
+    clearTimeout(rotaryTimer);
     idx = idx < 0
       ? Math.floor(Math.random() * rotaryTexts.length)
       : (idx + 1 + Math.floor(Math.random() * (rotaryTexts.length - 1))) % rotaryTexts.length;
-    const text = rotaryTexts[idx];
-    typeWriter(text, () => {
-      setTimeout(next, 500);
-    });
+    const points = characters(rotaryTexts[idx]);
+    if (reducedMotion.matches) {
+      draw(points, points.length);
+      rotaryTimer = setTimeout(next, 5000);
+      return;
+    }
+    const erase = count => {
+      draw(points, count);
+      rotaryTimer = setTimeout(() => count ? erase(count - 1) : next(), count ? 25 : 500);
+    };
+    const type = count => {
+      draw(points, count);
+      rotaryTimer = setTimeout(() => count < points.length ? type(count + 1) : erase(points.length), count < points.length ? 40 : 5000);
+    };
+    type(0);
   }
-
+  reducedMotion.addEventListener('change', next);
   next();
 
   const grid = document.getElementById('catalogGrid');
@@ -104,6 +117,7 @@
   let currentCat = '';
   let allWorks = [];
   let categories = [];
+  let catalogRequest = 0;
 
   function escapeHtml(text) {
     if (!text) return '';
@@ -132,16 +146,20 @@
   }
 
   async function loadWorks() {
+    const request = ++catalogRequest;
+    grid.setAttribute('aria-busy', 'true');
     try {
       const params = new URLSearchParams({ order: currentOrder });
       const res = await fetch('/api/works?' + params.toString());
       if (!res.ok) throw new Error('No se pudo cargar el catálogo');
-      allWorks = await res.json();
+      const works = await res.json();
+      if (request !== catalogRequest) return;
+      allWorks = works;
       renderCatSelect();
       render(allWorks.filter(work => !currentCat || work.category === currentCat));
     } catch (e) {
-      grid.innerHTML = '<p style="color:var(--danger);">error cargando el catálogo</p>';
-    }
+      if (request === catalogRequest) grid.innerHTML = '<p style="color:var(--danger);">error cargando el catálogo</p>';
+    } finally { if (request === catalogRequest) grid.setAttribute('aria-busy', 'false'); }
   }
 
   function renderCatFilters() {
@@ -242,17 +260,10 @@
         <div class="modal-body" style="padding:0;">${content}</div>
       </div>
     `;
-    document.body.appendChild(backdrop);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    backdrop.addEventListener('close', () => {
-      document.body.style.overflow = previousOverflow;
-      backdrop.remove();
-    }, { once: true });
     const close = () => backdrop.close();
     backdrop.querySelector('.modal-close').onclick = close;
     backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
-    backdrop.showModal();
+    UI.openDialog(backdrop);
   }
 
   function render(works) {
@@ -269,16 +280,16 @@
     grid.innerHTML = works.map(w => {
       const totalSize = w.files.reduce((sum, f) => sum + f.size, 0);
       return `
-        <article class="card work-card" data-work-id="${w.id}" tabindex="0" aria-label="Ver detalles de ${escapeHtml(w.title)}">
+        <article class="card work-card" role="button" data-work-id="${w.id}" tabindex="0" aria-label="Ver detalles de ${escapeHtml(w.title)}">
           <div class="card-cover">
             ${w.cover ? `<img src="${escapeHtml(w.cover)}" alt="portada de ${escapeHtml(w.title)}" loading="lazy">` : '<div class="card-cover-placeholder">sin portada</div>'}
-            ${w.category ? `<span class="cat-badge">${escapeHtml(w.category)}</span>` : ''}
+            ${w.category ? `<span class="cat-badge" title="${escapeHtml(w.category)}">${escapeHtml(w.category)}</span>` : ''}
           </div>
           <div class="card-body">
             <div class="card-title">${escapeHtml(w.title)}</div>
             <div class="card-meta"><strong>autor:</strong> ${escapeHtml(w.author)}</div>
             <div class="card-meta"><strong>año:</strong> ${w.year || '—'}</div>
-            <div class="card-meta"><strong>formato(s):</strong> ${w.files.map(f => escapeHtml(f.format.toUpperCase() || 'ARCHIVO')).join(' · ')}</div>
+            <div class="card-meta"><strong>formato(s):</strong> ${[...new Set(w.files.map(f => escapeHtml(f.format.toUpperCase() || 'ARCHIVO')))].join(' · ')}</div>
             <div class="card-meta"><strong>tamaño:</strong> ${formatBytes(totalSize)}</div>
           </div>
         </article>
@@ -287,11 +298,13 @@
   }
 
   grid.addEventListener('click', event => {
+    if (grid.getAttribute('aria-busy') === 'true') return;
     if (event.target.closest('a')) return;
     const card = event.target.closest('[data-work-id]');
     if (card) openDetailModal(Number(card.dataset.workId));
   });
   grid.addEventListener('keydown', event => {
+    if (grid.getAttribute('aria-busy') === 'true') return;
     if (event.target.matches('[data-work-id]') && ['Enter', ' '].includes(event.key)) {
       event.preventDefault();
       openDetailModal(Number(event.target.dataset.workId));
